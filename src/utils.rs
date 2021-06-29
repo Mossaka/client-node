@@ -1,14 +1,14 @@
 use std::u32;
 
 use neon::{
-    context::{CallContext, Context, FunctionContext, TaskContext},
+    context::{Context, FunctionContext, TaskContext},
     object::Object,
     prelude::Handle,
     result::JsResultExt,
     types::{JsArray, JsString, JsValue},
 };
-
-use tikv_client::{Error, Key, KvPair};
+use std::ops::Bound;
+use tikv_client::{Key, KvPair};
 
 pub fn bytes_to_js_string<'a>(cx: &mut TaskContext<'a>, bytes: Vec<u8>) -> Handle<'a, JsValue> {
     let content = std::str::from_utf8(&bytes).unwrap().to_owned();
@@ -65,4 +65,31 @@ pub fn js_array_to_rust_iterator<'a>(
                 .value(cx)
         })
         .collect::<Vec<String>>()
+}
+
+pub fn to_bound_range(
+    start: Option<Vec<u8>>,
+    end: Option<Vec<u8>>,
+    include_start: bool,
+    include_end: bool,
+) -> tikv_client::BoundRange {
+    let start_bound = if let Some(start) = start {
+        if include_start {
+            Bound::Included(start)
+        } else {
+            Bound::Excluded(start)
+        }
+    } else {
+        Bound::Unbounded
+    };
+    let end_bound = if let Some(end) = end {
+        if include_end {
+            Bound::Included(end)
+        } else {
+            Bound::Excluded(end)
+        }
+    } else {
+        Bound::Unbounded
+    };
+    tikv_client::BoundRange::from((start_bound, end_bound))
 }
