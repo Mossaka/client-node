@@ -5,7 +5,7 @@ use neon::{
     object::Object,
     prelude::Handle,
     result::JsResultExt,
-    types::{JsArray, JsString, JsValue},
+    types::{JsArray, JsString, JsValue, Value},
 };
 use std::ops::Bound;
 use tikv_client::{Key, KvPair};
@@ -51,6 +51,19 @@ pub fn kv_pairs_to_js_array<'a>(
     js_array
 }
 
+pub fn k_pairs_to_js_array<'a>(cx: &mut TaskContext<'a>, keys: Vec<Key>) -> Handle<'a, JsArray> {
+    let js_array = JsArray::new(cx, keys.len() as u32);
+    for (i, obj) in keys.iter().enumerate() {
+        let v1 = cx.string(
+            std::str::from_utf8(&Vec::from(obj.clone()))
+                .unwrap()
+                .to_owned(),
+        );
+        js_array.set(cx, i as u32, v1).unwrap();
+    }
+    js_array
+}
+
 pub fn js_array_to_rust_iterator<'a>(
     cx: &mut FunctionContext<'a>,
     array: Handle<JsArray>,
@@ -65,6 +78,38 @@ pub fn js_array_to_rust_iterator<'a>(
                 .value(cx)
         })
         .collect::<Vec<String>>()
+}
+
+pub fn js_array_to_rust_pairs<'a>(
+    cx: &mut FunctionContext<'a>,
+    array: Handle<JsArray>,
+) -> impl IntoIterator<Item = impl Into<KvPair>> {
+    let array = array.to_vec(cx).unwrap(); // TODO: remove unwrap here
+    let mut pairs = vec![];
+    for k in array.into_iter() {
+        let pair_result = k.downcast::<JsArray, _>(cx).or_throw(cx);
+        match pair_result {
+            Ok(pair) => {
+                let pair_0 = pair
+                    .get(cx, 0 as u32)
+                    .unwrap()
+                    .downcast::<JsString, _>(cx)
+                    .or_throw(cx)
+                    .unwrap()
+                    .value(cx); // TODO: remove unwrap here
+                let pair_1 = pair
+                    .get(cx, 1 as u32)
+                    .unwrap()
+                    .downcast::<JsString, _>(cx)
+                    .or_throw(cx)
+                    .unwrap()
+                    .value(cx); // TODO: remove unwrap here
+                pairs.push(KvPair::new(pair_0, pair_1));
+            }
+            Err(err) => println!("{}", err.to_string()),
+        }
+    }
+    pairs
 }
 
 pub fn to_bound_range(
