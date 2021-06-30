@@ -1,7 +1,7 @@
-const RawClient = require(".");
+const tikv = require(".");
 
 (async () => {
-  const client = await new RawClient("127.0.0.1:2379");
+  const client = await new tikv.RawClient("127.0.0.1:2379");
   await client.put("k1", "v1", "default");
   await client.put("k2", "v2", "default");
   await client.put("k3", "v3", "default");
@@ -30,3 +30,4 @@ const RawClient = require(".");
 
   console.log(values);
 })();
+
