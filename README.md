@@ -32,11 +32,11 @@ After building client-node, you can explore its exports at the Node REPL:
 
 ```sh
 $ npm install
-$ node transaction_app.js
-v4
+$ node examples/raw_app.js
+v1
+v2
 v3
-[ 'k1', 'v1' ]
-[ 'k4', 'v4' ]
+[ [ 'k3', 'v3' ], [ 'k6', 'v6' ] ]
 ```
 
 ## Available Scripts
